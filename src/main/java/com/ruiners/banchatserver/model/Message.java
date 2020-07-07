@@ -1,25 +1,37 @@
 package com.ruiners.banchatserver.model;
 
 import java.util.Date;
-import java.util.UUID;
 
 public class Message {
-    private final String id;
+    private final long id;
     private final String message;
+    private final long room;
     private final long timestamp;
 
-    public Message(String message) {
-        this.id = UUID.randomUUID().toString();
+    public Message(String message, long room) {
+        this.id = 0;
         this.message = message;
+        this.room = room;
         this.timestamp = new Date().getTime();
     }
 
-    public String getId() {
+    public Message(long id, String message, long room, long timestamp) {
+        this.id = id;
+        this.message = message;
+        this.room = room;
+        this.timestamp = timestamp;
+    }
+
+    public long getId() {
         return id;
     }
 
     public String getMessage() {
         return message;
+    }
+
+    public long getRoom() {
+        return room;
     }
 
     public long getTimestamp() {
