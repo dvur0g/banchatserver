@@ -2,6 +2,7 @@ package com.ruiners.banchatserver.handler;
 
 import com.ruiners.banchatserver.ConnectionPool;
 import com.ruiners.banchatserver.model.Message;
+import com.ruiners.banchatserver.model.Room;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -50,5 +51,26 @@ public final class DatabaseHandler {
         }
 
         return messages;
+    }
+
+    public static List<Room> getRooms() {
+        List<Room> rooms = new ArrayList<>();
+
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try(Connection c = ConnectionPool.getConnection()) {
+            ps = c.prepareStatement("SELECT * FROM rooms WHERE id != 0");
+
+            rs = ps.executeQuery();
+            while (rs.next())
+                rooms.add(new Room(rs.getLong("id"), rs.getString("name")));
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            ConnectionPool.close(rs, ps);
+        }
+
+        return rooms;
     }
 }
