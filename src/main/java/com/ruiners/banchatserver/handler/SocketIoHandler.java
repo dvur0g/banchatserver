@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.ruiners.banchatserver.config.Config;
 import com.ruiners.banchatserver.model.Client;
 import com.ruiners.banchatserver.model.Message;
+import com.ruiners.banchatserver.model.Room;
 import io.socket.engineio.server.EngineIoServer;
 import io.socket.socketio.server.SocketIoNamespace;
 import io.socket.socketio.server.SocketIoServer;
@@ -16,9 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Controller
 public class SocketIoHandler {
@@ -51,6 +50,13 @@ public class SocketIoHandler {
 
                 if (client.getRoom() != Config.DEFAULT_ROOM)
                     client.getSocket().send("last messages", gson.toJson(DatabaseHandler.getMessages(client.getRoom())));
+            });
+
+            client.getSocket().on("new room", args -> {
+                Room room = gson.fromJson((String) args[0], Room.class);
+                DatabaseHandler.insertRoom(room);
+
+                client.getSocket().send("get rooms", gson.toJson(DatabaseHandler.getRooms()));
             });
 
             client.getSocket().send("get rooms", gson.toJson(DatabaseHandler.getRooms()));

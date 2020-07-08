@@ -53,6 +53,22 @@ public final class DatabaseHandler {
         return messages;
     }
 
+    public static void insertRoom(Room room) {
+        PreparedStatement ps = null;
+        try(Connection c = ConnectionPool.getConnection()) {
+            ps = c.prepareStatement("INSERT INTO rooms VALUES ((select nextval ('room_sequence')), ?)");
+            ps.setString(1, room.getName());
+
+            ps.executeUpdate();
+            c.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            ConnectionPool.close(ps);
+        }
+    }
+
+
     public static List<Room> getRooms() {
         List<Room> rooms = new ArrayList<>();
 
