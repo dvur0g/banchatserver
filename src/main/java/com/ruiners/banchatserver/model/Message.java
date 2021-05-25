@@ -1,20 +1,32 @@
 package com.ruiners.banchatserver.model;
 
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import java.util.Date;
-import java.util.UUID;
 
+@Entity
 public class Message {
-    private final String id;
-    private final String message;
-    private final long timestamp;
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    private Long id;
+    private String message;
+    private Long room;
+    private Long timestamp;
 
-    public Message(String message) {
-        this.id = UUID.randomUUID().toString();
-        this.message = message;
-        this.timestamp = new Date().getTime();
+    public Message() {
+
     }
 
-    public String getId() {
+    public Message(Long id, String message, Long room, Long timestamp) {
+        this.id = id;
+        this.message = message;
+        this.room = room;
+        this.timestamp = timestamp;
+    }
+
+    public Long getId() {
         return id;
     }
 
@@ -22,7 +34,11 @@ public class Message {
         return message;
     }
 
-    public long getTimestamp() {
+    public Long getRoom() {
+        return room;
+    }
+
+    public Long getTimestamp() {
         return timestamp;
     }
 

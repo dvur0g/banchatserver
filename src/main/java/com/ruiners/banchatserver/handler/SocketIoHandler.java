@@ -1,7 +1,12 @@
 package com.ruiners.banchatserver.handler;
 
 import com.google.gson.Gson;
+import com.ruiners.banchatserver.config.Config;
+import com.ruiners.banchatserver.handler.database.MessageRepository;
+import com.ruiners.banchatserver.handler.database.RoomRepository;
+import com.ruiners.banchatserver.model.Client;
 import com.ruiners.banchatserver.model.Message;
+import com.ruiners.banchatserver.model.Room;
 import io.socket.engineio.server.EngineIoServer;
 import io.socket.socketio.server.SocketIoNamespace;
 import io.socket.socketio.server.SocketIoServer;
@@ -18,33 +23,56 @@ import java.util.List;
 
 @Controller
 public class SocketIoHandler {
+
+    RoomRepository roomRepository;
+    MessageRepository messageRepository;
+
     private final EngineIoServer serverEngine = new EngineIoServer();
-    private final List<SocketIoSocket> clients = new ArrayList<>();
+    private final List<Client> clients = new ArrayList<>();
     private final Gson gson = new Gson();
 
-    SocketIoHandler() {
+    SocketIoHandler(RoomRepository roomRepository, MessageRepository messageRepository) {
+        this.roomRepository = roomRepository;
+        this.messageRepository = messageRepository;
+
         SocketIoServer serverSocket = new SocketIoServer(serverEngine);
         SocketIoNamespace namespace = serverSocket.namespace("/");
 
-        namespace.on("connect", socket -> {
-            SocketIoSocket client = (SocketIoSocket) socket[0];
+        namespace.on("connection", socket -> {
+            Client client = new Client(Config.DEFAULT_ROOM, (SocketIoSocket) socket[0]);
             clients.add(client);
 
-            client.on("message", args -> {
+            client.getSocket().on("chat message", args -> {
                 Message message = gson.fromJson((String) args[0], Message.class);
-                System.out.println(client.getId() + " shared a message on the namespace: " + "-" + message.getMessage());
+                this.messageRepository.save(message);
 
-                client.emit("message", args);
+                for (Client participant : clients) {
+                    if (participant.getRoom() == message.getRoom())
+                        participant.getSocket().send("chat message", args);
+                }
+                System.out.println(client.getSocket().getId() + " to room " + message.getRoom() + " >> " + message.getMessage());
             });
 
-//            client.on("connect", authentication -> {
-//                Credentials credentials = gson.fromJson((String) authentication[0], Credentials.class);
-//
-//                System.out.println("Got credentials: " + credentials.getUsername() + "-" + credentials.getPassword());
-//                //client.disconnect(true);
-//            });
+            client.getSocket().on("enter room", room -> {
+                client.setRoom(gson.fromJson((String) room[0], Long.class));
 
-            System.out.println("New connection " + client.getId());
+                if (client.getRoom() != Config.DEFAULT_ROOM)
+                    client.getSocket().send("last messages", gson.toJson(this.messageRepository.getMessageByRoom(client.getRoom())));
+
+                System.out.println("client " + client.getSocket().getId() + " entered room " + client.getRoom());
+            });
+
+            client.getSocket().on("new room", args -> {
+                Room room = gson.fromJson((String) args[0], Room.class);
+                this.roomRepository.save(room);
+
+                for (Client participant : clients)
+                    participant.getSocket().send("get rooms", gson.toJson(this.roomRepository.findAll()));
+            });
+
+            client.getSocket().send("get rooms", gson.toJson(this.roomRepository.findAll()));
+
+            System.out.println("New connection " + client.getSocket().getId());
         });
     }
 
